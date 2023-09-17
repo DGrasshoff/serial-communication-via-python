@@ -24,6 +24,18 @@ def update_plot():
     plt.ylabel('Data')
     plt.title('Real-time Data Plot')
     plt.pause(time_increment/1000000000)  # Pause for a short time to update the plot
+    
+#saves a plot in a directory
+def save_plot(time_values, data_values, file_name):
+    plt.figure()
+    plt.plot(time_values, data_values)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Data')
+    plt.title('Data Plot')
+    plot_file_path = os.path.join(file_path, file_name, file_name + '_plot.png')
+    plt.savefig(plot_file_path)
+    plt.close()
+
 
 while True:
     #gives information about the plot
@@ -38,46 +50,50 @@ while True:
         #checks whether a file name is given
         if file_name is None:
             file_name = input("Set a file name: ")
+        else:
+            #creates a new directory
+            os.mkdir(file_path + file_name)
+            #creates a new csv file for wrting
+            csv_file_path = file_path + file_name + "/" + file_name + "data.csv"
+            #saves the starting time
+            start_time = time.time()
+            #resets the counter
+            counter = 0
+            #opens the csv file
+            with open(csv_file_path, 'w', newline='') as csvfile:
+                csv_writer = csv.writer(csvfile)
+                csv_writer.writerow(["Time (s)", "Data"])  # Write header row
 
-        #creates a new directory
-        os.mkdir(file_path + file_name)
-        #creates a new csv file for wrting
-        csv_file_path = file_path + file_name + "/" + file_name + "data.csv"
-        #saves the starting time
-        start_time = time.time()
-        #resets the counter
-        counter = 0
-        #opens the csv file
-        with open(csv_file_path, 'w', newline='') as csvfile:
-            csv_writer = csv.writer(csvfile)
-            csv_writer.writerow(["Time (s)", "Data"])  # Write header row
+                # Clear previous data
+                time_values.clear()
+                data_values.clear()
+                while True:
+                    #reads the data
+                    data = ser.readline().decode('utf-8').strip()
+                    #writes the data to the csv file
+                    csv_writer.writerow([time.time()- start_time, data])
+                    # Append time and data values for plotting
+                    time_values.append(time.time()- start_time)
+                    data_values.append(float(data))  # Assuming data is a float
+                    #updates the plot
+                    update_plot()
+                    #counts the number of cycles
+                    counter = counter + 1
+                    #looks whether time has passed
+                    if time.time() - start_time >= time_duration:
+                        break
+                
+                #gives basic information
+                print("Data collection finished\n")
+                print("loop has run for: " + str(time.time() - start_time) + " seconds")
+                print("loop has run " + str(counter) + " times")
+                
+                #saves a plot of the data
+                save_plot(time_values, data_values, file_name)
 
-            # Clear previous data
-            time_values.clear()
-            data_values.clear()
-            while True:
-                #reads the data
-                data = ser.readline().decode('utf-8').strip()
-                #writes the data to the csv file
-                csv_writer.writerow([time.time()- start_time, data])
-                # Append time and data values for plotting
-                time_values.append(time.time()- start_time)
-                data_values.append(float(data))  # Assuming data is a float
-                #updates the plot
-                update_plot()
-                #counts the number of cycles
-                counter = counter + 1
-                #looks whether time has passed
-                if time.time() - start_time >= time_duration:
-                    break
-            
-            #gives basic information
-            print("Data collection finished\n")
-            print("loop has run for: " + str(time.time() - start_time) + " seconds")
-            print("loop has run " + str(counter) + " times")
-            
-            #prevents the data from being overwritten
-            file_name = None
+                
+                #prevents the data from being overwritten
+                file_name = None
     #configure the file name
     elif user_input == 'c':
         file_name = input("Enter a file name: ")
