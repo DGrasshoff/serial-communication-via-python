@@ -4,4 +4,5 @@ time. Further the data is plotted in realtime too.
 One can configure the measurement duration
 
 data_sender.ino - is the file the arduino is programmed with(sends the data value every Millisecond)
+
 data_receiver.py - is the python file, which saves the data
