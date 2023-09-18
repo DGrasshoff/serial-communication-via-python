@@ -8,7 +8,7 @@ arduino_port = '/dev/cu.usbmodem11301'  # Replace with your Arduino's port
 ser = serial.Serial(arduino_port, 9600)
 
 file_path = '/Users/daniel/Documents/Schule/Physik_Z/arduino_data/'
-time_increment = 1 / 1000
+time_increment = 1 / 1000000000000
 time_duration = 10
 file_name = None  # Initialize file_name as None
 
@@ -23,7 +23,7 @@ def update_plot():
     plt.xlabel('Time (s)')
     plt.ylabel('Data')
     plt.title('Real-time Data Plot')
-    plt.pause(time_increment/1000000000)  # Pause for a short time to update the plot
+    plt.pause(time_increment/1000000000000000000000000)  # Pause for a short time to update the plot
     
 #saves a plot in a directory
 def save_plot(time_values, data_values, file_name):
