@@ -5,7 +5,6 @@ import csv
 import os
 
 arduino_port = '/dev/cu.usbmodem11301'  # Replace with your Arduino's port
-ser = serial.Serial(arduino_port, 9600)
 
 file_path = '/Users/daniel/Documents/Schule/Physik_Z/arduino_data/'
 time_increment = 1 / 1000000000000
@@ -51,48 +50,56 @@ while True:
         if file_name is None:
             file_name = input("Set a file name: ")
         else:
-            #creates a new directory
-            os.mkdir(file_path + file_name)
-            #creates a new csv file for wrting
-            csv_file_path = file_path + file_name + "/" + file_name + "data.csv"
-            #saves the starting time
-            start_time = time.time()
-            #resets the counter
-            counter = 0
-            #opens the csv file
-            with open(csv_file_path, 'w', newline='') as csvfile:
-                csv_writer = csv.writer(csvfile)
-                csv_writer.writerow(["Time (s)", "Data"])  # Write header row
+            try: 
+                #creates a new directory
+                os.mkdir(file_path + file_name)
+                #open serial
+                ser = serial.Serial(arduino_port, 9600)
 
-                # Clear previous data
-                time_values.clear()
-                data_values.clear()
-                while True:
-                    #reads the data
-                    data = ser.readline().decode('utf-8').strip()
-                    #writes the data to the csv file
-                    csv_writer.writerow([time.time()- start_time, data])
-                    # Append time and data values for plotting
-                    time_values.append(time.time()- start_time)
-                    data_values.append(float(data))  # Assuming data is a float
-                    #updates the plot
-                    update_plot()
-                    #counts the number of cycles
-                    counter = counter + 1
-                    #looks whether time has passed
-                    if time.time() - start_time >= time_duration:
-                        break
-                
-                #gives basic information
-                print("Data collection finished\n")
-                print("loop has run for: " + str(time.time() - start_time) + " seconds")
-                print("loop has run " + str(counter) + " times")
-                
-                #saves a plot of the data
-                save_plot(time_values, data_values, file_name)
+                #creates a new csv file for wrting
+                csv_file_path = file_path + file_name + "/" + file_name + "data.csv"
+                #saves the starting time
+                start_time = time.time()
+                #resets the counter
+                counter = 0
+                #opens the csv file
+                with open(csv_file_path, 'w', newline='') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    csv_writer.writerow(["Time (s)", "Data"])  # Write header row
 
-                
-                #prevents the data from being overwritten
+                    # Clear previous data
+                    time_values.clear()
+                    data_values.clear()
+                    while True:
+                        #reads the data
+                        data = ser.readline().decode('utf-8').strip()
+                        #writes the data to the csv file
+                        csv_writer.writerow([time.time()- start_time, data])
+                        # Append time and data values for plotting
+                        time_values.append(time.time()- start_time)
+                        data_values.append(float(data))  # Assuming data is a float
+                        #updates the plot
+                        update_plot()
+                        #counts the number of cycles
+                        counter = counter + 1
+                        #looks whether time has passed
+                        if time.time() - start_time >= time_duration:
+                            break
+                    
+                    #gives basic information
+                    print("Data collection finished\n")
+                    print("loop has run for: " + str(time.time() - start_time) + " seconds")
+                    print("loop has run " + str(counter) + " times")
+                    
+                    #saves a plot of the data
+                    save_plot(time_values, data_values, file_name)
+
+                    #closes the serial
+                    ser.close()
+                    #prevents the data from being overwritten
+                    file_name = None
+            except FileExistsError:
+                print("File name already exists")
                 file_name = None
     #configure the file name
     elif user_input == 'c':
@@ -104,4 +111,3 @@ while True:
     elif user_input == 'q':
         break
 
-ser.close()
