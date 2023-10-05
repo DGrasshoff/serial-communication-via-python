@@ -36,7 +36,7 @@ def save_plot(time_values, data_values, file_name):
     plt.xlabel('Time (s)')
     plt.ylabel('Data')
     plt.title('Data Plot')
-    plot_file_path = os.path.join(file_path, file_name, file_name + '_plot.png')
+    plot_file_path = os.path.join(file_path, file_name, file_name + "_plot.png")
     plt.savefig(plot_file_path)
     plt.close()
 
@@ -44,63 +44,92 @@ def save_plot(time_values, data_values, file_name):
 def update_sensor_label(data):
     sensor_label.config(text=f'Sensor Value: {data}')
     
+def update_average(input):
+    average_label.config(text=f'Average Sensor Value: {input}')
+    
 # Function to start data collection
 def start_data_collection():
     global file_name
-    if file_name is None:
-        file_name = file_name_entry.get()
-    else:
+    try:
+        file_name = str(file_name_entry.get())
+        os.mkdir(file_path + file_name)
+        csv_file_path = file_path + file_name + "/" + file_name + "data.csv"
+        start_data_visualization()
+        with open(csv_file_path, 'w', newline='') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(["Time (s)", "Sensor Value", "Voltage(V)"])  # Write header row
+
+            for x in range(len(data_values)):
+                voltage = data_values[x] * 5/1023
+                csv_writer.writerow([time_values[x], data_values[x], voltage])
+
+        save_plot(time_values, data_values, file_name)
+        file_name = None
+    except FileExistsError:
+        print("File name already exists")
+        
+        
+def start_data_visualization():
+        ser = serial.Serial(arduino_port, 9600)
+        start_time = time.time()
+        counter = 0
+        update_counter =  0
         try:
-            os.mkdir(file_path + file_name)
-            ser = serial.Serial(arduino_port, 9600)
-            csv_file_path = file_path + file_name + "/" + file_name + "data.csv"
-            start_time = time.time()
-            counter = 0
-            if time_entry.get() is None:
-                time_duration = 10
+            time_duration = int(time_entry.get())
+        except:
+            time_duration = 10
+        time_values.clear()
+        data_values.clear()
+        average_sum = 0
+        average_counter = 0
+        average = 0
+        n = 1
+        while True: 
+            try:
+                data = int(ser.readline().decode('utf-8').strip())
+                time_values.append(time.time() - start_time)
+                data_values.append(int(data))
+                average_sum += data
+                average_counter += 1
+            except:
+                print("Error Serial")
+            if time.time() - start_time >= n * 0.5:
+                average = average_sum / average_counter
+                average_counter = 0
+                average_sum = 0
+                n += 1
+            if update_counter == 10:
+                update_plot()
+                update_sensor_label(data)
+                update_average(average)
+                update_counter = 0
             else:
-                time_duration = int(time_entry.get())
-            with open(csv_file_path, 'w', newline='') as csvfile:
-                csv_writer = csv.writer(csvfile)
-                csv_writer.writerow(["Time (s)", "Data"])  # Write header row
-                time_values.clear()
-                data_values.clear()
-                while True:
-                    data = ser.readline().decode('utf-8').strip()
-                    csv_writer.writerow([time.time() - start_time, data])
-                    time_values.append(time.time() - start_time)
-                    data_values.append(float(data))
-                    update_plot()
-                    counter += 1
-                    if time.time() - start_time >= time_duration:
-                        update_sensor_label(0)
-                        break
-                    else:
-                        update_sensor_label(data)
-                print("Data collection finished\n")
-                print("Loop has run for: " + str(time.time() - start_time) + " seconds")
-                print("Loop has run " + str(counter) + " times")
-                save_plot(time_values, data_values, file_name)
-                ser.close()
-                file_name = None
-        except FileExistsError:
-            print("File name already exists")
-            file_name = None
+                update_counter += 1
+            counter += 1
+            if time.time() - start_time >= time_duration:
+                end_time = time.time() - start_time
+                break
+        print("Data collection finished\n")
+        print("Loop has run for: " + str(end_time) + " seconds")
+        print("Loop has run " + str(counter) + " times")
+        ser.close()
+
 
 # Create the GUI window
 root = tk.Tk()
 root.title("Sensor Data GUI")
 
 # Create a label to display the sensor value
-sensor_label = Label(root, text=f'Sensor Value: {sensor_value}')
+sensor_label = Label(root, text=f'No input')
 sensor_label.pack()
 
+average_label = Label(root, text=f'No Input')
+average_label.pack()
 # Create an entry widget for entering the file name
 file_name_label = Label(root, text="Enter a file name:")
 file_name_label.pack()
 file_name_entry = tk.Entry(root)
 file_name_entry.pack()
-
 
 time_label = Label(root, text="Enter a measuring time:" )
 time_label.pack()
@@ -110,6 +139,10 @@ time_entry.pack()
 # Create a button to start data collection
 start_button = tk.Button(root, text="Start Data Collection", command=start_data_collection)
 start_button.pack()
+
+# Create a button to start data collection
+start_2_button = tk.Button(root, text="Show Data", command=start_data_visualization)
+start_2_button.pack()
 
 # Create a button to close the window
 close_button = tk.Button(root, text="Close", command= close_window)
